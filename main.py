@@ -6,6 +6,10 @@ WALL_WIDTH = WALL_HEIGHT = 32
 WALL_COLOR = 'red'
 LEVELS_DIR = 'levels'
 
+all_sprites = pygame.sprite.Group()  # все объекты
+bullets_group = pygame.sprite.Group()
+entities = pygame.sprite.Group()  # пока тут только walls
+
 
 class Wall(pygame.sprite.Sprite):
     def __init__(self, x, y, groups):
@@ -42,9 +46,16 @@ class Player(pygame.sprite.Sprite):
 
         self.rect = self.rect.move(*self.speed)
 
-    def update(self, collide_group):
+    def update(self, *args, **kwargs):
+        collide_group = args[0]
+
+        mouse_btns, mouse_pos = args[1], args[2]
+        camera = args[3]
+
         self.move()
         self.collide(collide_group)
+        if mouse_btns[0]:
+            self.shoot(mouse_pos, camera)
 
     def collide(self, collide_group):  # коллизия собственного производства
         """Мы смотрим на предыдущий шаг,
@@ -71,6 +82,35 @@ class Player(pygame.sprite.Sprite):
             if collide_x and collide_y:
                 self.rect = self.rect.move(-self.speed[0], -self.speed[1])
 
+    def shoot(self, pos, camera):
+        real_pos = camera.get_real_pos(pos)
+        bullet = Bullet(self.rect.center, real_pos, (bullets_group, all_sprites))
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, pos_start, pos_end, groups):
+        super().__init__(*groups)
+        self.image = pygame.Surface((20, 20))
+        self.image.fill((250, 250, 0))
+        self.rect = self.image.get_rect()
+        self.rect.center = (pos_start[0], pos_start[1])
+        self.speed = 1000 / FPS
+
+        self.cos, self.sin = self.calculate_direction(*pos_start, *pos_end)
+
+    def update(self):
+        self.rect.x += self.cos * self.speed
+        self.rect.y += self.sin * self.speed
+
+        if pygame.sprite.spritecollide(self, entities, False):
+            self.kill()
+
+    def calculate_direction(self, x1, y1, x2, y2):
+        distance = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+        cos = (x2 - x1) / distance
+        sin = (y2 - y1) / distance
+        return cos, sin
+
 
 class Camera(object):
     def __init__(self, camera_func, width, height):
@@ -79,6 +119,12 @@ class Camera(object):
 
     def apply(self, target):
         return target.rect.move(self.state.topleft)
+
+    def get_real_pos(self, pos):
+        x, y = pos
+        x -= self.state.x
+        y -= self.state.y
+        return (x, y)
 
     def update(self, target):
         self.state = self.camera_func(self.state, target.rect)
@@ -109,12 +155,9 @@ def main():
 
     level = load_level('test.txt')
 
-    all_sprites = pygame.sprite.Group()  # все объекты
-
     player = Player(100, 100, 50, 50, 'green', (all_sprites,))  # создаем игрока
     camera = Camera(camera_configure, len(level[0]) * WALL_WIDTH, len(level) * WALL_HEIGHT)  # создаем камеру
 
-    entities = pygame.sprite.Group()  # пока тут только walls
     for i in range(len(level)):
         for j in range(len(level[0])):
             if level[i][j] == '-':
@@ -129,7 +172,9 @@ def main():
 
         # updates
         camera.update(player)
-        player.update(entities)
+
+        player.update(entities, pygame.mouse.get_pressed(3), pygame.mouse.get_pos(), camera)
+        bullets_group.update()
 
         # renders
         screen.fill('black')
