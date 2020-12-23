@@ -6,6 +6,8 @@ WALL_WIDTH = WALL_HEIGHT = 32
 WALL_COLOR = 'red'
 LEVELS_DIR = 'levels'
 
+CAN_SHOOT_EVENT = pygame.USEREVENT + 3
+
 all_sprites = pygame.sprite.Group()  # все объекты
 bullets_group = pygame.sprite.Group()
 entities = pygame.sprite.Group()  # пока тут только walls
@@ -29,6 +31,10 @@ class Player(pygame.sprite.Sprite):
 
         self.image = pygame.Surface((width, height))
         self.image.fill(color)
+
+        self.can_shoot_flag = True
+        self.weapon_delay = 200
+
 
     def move(self):
         keys = pygame.key.get_pressed()
@@ -54,7 +60,8 @@ class Player(pygame.sprite.Sprite):
 
         self.move()
         self.collide(collide_group)
-        if mouse_btns[0]:
+        if mouse_btns[0] and self.can_shoot_flag:
+            pygame.time.set_timer(CAN_SHOOT_EVENT, self.weapon_delay, True)
             self.shoot(mouse_pos, camera)
 
     def collide(self, collide_group):  # коллизия собственного производства
@@ -83,6 +90,7 @@ class Player(pygame.sprite.Sprite):
                 self.rect = self.rect.move(-self.speed[0], -self.speed[1])
 
     def shoot(self, pos, camera):
+        self.can_shoot_flag = False
         real_pos = camera.get_real_pos(pos)
         bullet = Bullet(self.rect.center, real_pos, (bullets_group, all_sprites))
 
@@ -169,7 +177,8 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
+            if event.type == CAN_SHOOT_EVENT:
+                player.can_shoot_flag = True
         # updates
         camera.update(player)
 
