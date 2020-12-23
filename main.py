@@ -16,6 +16,7 @@ CAN_SHOOT_EVENT = pygame.USEREVENT + 3
 all_sprites = pygame.sprite.Group()  # все объекты
 bullets_group = pygame.sprite.Group()
 entities = pygame.sprite.Group()  # пока тут только walls
+enemies = pygame.sprite.Group()
 
 screen = pygame.display.set_mode(WINDOW_SIZE)
 clock = pygame.time.Clock()
@@ -100,6 +101,68 @@ class Player(pygame.sprite.Sprite):
         self.can_shoot_flag = False
         real_pos = camera.get_real_pos(pos)
         bullet = Bullet(self.rect.center, real_pos, (bullets_group, all_sprites))
+
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, x, y, width, height, color, way, groups):
+        super().__init__(*groups)
+        self.rect = pygame.Rect(x, y, width, height)
+        self.image = pygame.Surface((width, height))
+        self.image.fill(color)
+
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+        self.end_x = self.end_y = self.direction = self.dist = None
+
+        self.vx = self.vy = 4
+        self.way = way
+        self.current_way = 0
+        self.is_move = False
+
+    def update(self, *args, **kwargs):
+        if self.is_move:
+            self.move_road()
+        else:
+            self.start_move_to_point(self.way[self.current_way])
+            self.current_way += 1
+            self.current_way %= len(self.way)
+
+    def start_move_to_point(self, coord):
+        self.end_x = coord[0]
+        self.end_y = coord[1]
+        if self.x + self.width // 2 != self.end_x and self.y + self.height // 2 != self.end_y:
+            self.is_move = True
+            self.dist = ((self.end_x - (self.x + self.width // 2)) ** 2 + (
+                    self.end_y - (self.x + self.width // 2)) ** 2) ** 0.5
+            self.direction = ((self.end_x - (self.x + self.width // 2)) / self.dist,
+                              (self.end_y - (self.x + self.width // 2)) / self.dist)
+
+    def move_road(self):
+        if self.end_x > self.x + self.width // 2:
+            self.x += self.vx
+        elif self.end_x < self.x + self.width // 2:
+            self.x -= self.vx
+
+        if self.end_y > self.y + self.height // 2:
+            self.y += self.vy
+        elif self.end_y < self.y + self.height // 2:
+            self.y -= self.vy
+
+        self.check_moving()
+
+    def check_moving(self):
+        if abs(self.x + self.width // 2 - self.end_x) < self.vx:
+            self.x = self.end_x - self.width // 2
+        if abs(self.y + self.height // 2 - self.end_y) < self.vy:
+            self.y = self.end_y - self.height // 2
+
+        if self.x == self.end_x - self.width // 2 and \
+                self.y == self.end_y - self.height // 2:
+            self.is_move = False
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -224,6 +287,7 @@ def main():
 
     player = Player(100, 100, 50, 50, 'green', (all_sprites,))  # создаем игрока
     camera = Camera(camera_configure, len(level[0]) * WALL_WIDTH, len(level) * WALL_HEIGHT)  # создаем камеру
+    enemy = Enemy(200, 200, 50, 50, 'red', [(300, 300), (900, 900)], (all_sprites, enemies))
 
     light = load_image('circle.png')
     light = pygame.transform.scale(light, (100, 100))
@@ -250,6 +314,7 @@ def main():
 
         player.update(entities, pygame.mouse.get_pressed(3), pygame.mouse.get_pos(), camera)
         bullets_group.update()
+        enemies.update()
 
         # renders
         screen.fill((150, 150, 150))
