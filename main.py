@@ -1,4 +1,9 @@
+import os
+import sys
+
 import pygame
+
+pygame.init()
 
 WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT = 1280, 720
 FPS = 60
@@ -11,6 +16,9 @@ CAN_SHOOT_EVENT = pygame.USEREVENT + 3
 all_sprites = pygame.sprite.Group()  # все объекты
 bullets_group = pygame.sprite.Group()
 entities = pygame.sprite.Group()  # пока тут только walls
+
+screen = pygame.display.set_mode(WINDOW_SIZE)
+clock = pygame.time.Clock()
 
 
 class Wall(pygame.sprite.Sprite):
@@ -33,8 +41,7 @@ class Player(pygame.sprite.Sprite):
         self.image.fill(color)
 
         self.can_shoot_flag = True
-        self.weapon_delay = 200
-
+        self.weapon_delay = 100
 
     def move(self):
         keys = pygame.key.get_pressed()
@@ -128,6 +135,9 @@ class Camera(object):
     def apply(self, target):
         return target.rect.move(self.state.topleft)
 
+    def rect_apply(self, rect):
+        return rect.move(self.state.topleft)
+
     def get_real_pos(self, pos):
         x, y = pos
         x -= self.state.x
@@ -157,22 +167,78 @@ def load_level(filename):
     return data
 
 
-def main():
-    pygame.init()
-    screen = pygame.display.set_mode(WINDOW_SIZE)
+def terminate():
+    pygame.quit()
+    sys.exit()
 
+
+def load_image(name, colorkey=None):
+    fullname = os.path.join('data', name)
+    # если файл не существует, то выходим
+    if not os.path.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+        sys.exit()
+    image = pygame.image.load(fullname)
+    if colorkey is not None:
+        image = image.convert()
+        if colorkey == -1:
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey)
+
+    return image
+
+
+def start_screen():
+    intro_text = ["ЗАСТАВКА", "",
+                  "Правила игры",
+                  "Если в правилах несколько строк,",
+                  "приходится выводить их построчно"]
+
+    fon = pygame.surface.Surface(WINDOW_SIZE)
+    fon.fill('blue')
+    screen.blit(fon, (0, 0))
+    font = pygame.font.Font(None, 30)
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                return  # начинаем игру
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def main():
     level = load_level('test.txt')
 
     player = Player(100, 100, 50, 50, 'green', (all_sprites,))  # создаем игрока
     camera = Camera(camera_configure, len(level[0]) * WALL_WIDTH, len(level) * WALL_HEIGHT)  # создаем камеру
+
+    light = load_image('circle.png')
+    light = pygame.transform.scale(light, (100, 100))
+
+    lamps_coord = []
+    for i in range(10):
+        lamps_coord.append((50 * i, 100))
 
     for i in range(len(level)):
         for j in range(len(level[0])):
             if level[i][j] == '-':
                 wl = Wall(j * WALL_WIDTH, i * WALL_HEIGHT, (all_sprites, entities))
 
-    clock = pygame.time.Clock()
     running = True
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -186,10 +252,22 @@ def main():
         bullets_group.update()
 
         # renders
-        screen.fill('black')
+        screen.fill((150, 150, 150))
 
         for e in all_sprites:
             screen.blit(e.image, camera.apply(e))
+
+        # lightning
+        screen_filter = pygame.surface.Surface(WINDOW_SIZE)
+        screen_filter.fill((220, 220, 220))
+        # pygame.draw.circle(screen_filter, ('black'), camera.apply(player).center, 300)
+        for b in bullets_group:
+            # pygame.draw.circle(screen_filter, 'black', camera.apply(b).center, 20)
+            screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(b).center)))
+        # screen_filter.blit(light, list(map(lambda x: x - 3 * 50, pygame.mouse.get_pos())))
+        # screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(player).center)))
+        pygame.draw.circle(screen_filter, 'black', camera.apply(player).center, 100)
+        screen.blit(screen_filter, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
 
         # flip
         pygame.display.flip()
@@ -198,4 +276,5 @@ def main():
 
 
 if __name__ == '__main__':
+    # start_screen()
     main()
