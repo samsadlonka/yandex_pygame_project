@@ -1,6 +1,6 @@
 import os
 import sys
-
+import math
 import pygame
 
 pygame.init()
@@ -22,6 +22,46 @@ screen = pygame.display.set_mode(WINDOW_SIZE)
 clock = pygame.time.Clock()
 
 
+def find_angle(x1, y1, x2, y2):
+    rad = math.atan2(-(y2 - y1), x2 - x1)
+    degree = math.degrees(rad)
+    return degree
+
+
+def rot_center(image, angle, x, y):
+    rotated_image = pygame.transform.rotate(image, angle)
+    new_rect = rotated_image.get_rect(center=image.get_rect(center=(x, y)).center)
+
+    return rotated_image, new_rect
+
+
+def load_level(filename):
+    data = open(f"{LEVELS_DIR}/{filename}", 'rt').readlines()
+    data = list(map(str.rstrip, data))
+    return data
+
+
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+def load_image(name, colorkey=None):
+    fullname = os.path.join('data', name)
+    # если файл не существует, то выходим
+    if not os.path.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+        sys.exit()
+    image = pygame.image.load(fullname)
+    if colorkey is not None:
+        image = image.convert()
+        if colorkey == -1:
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey)
+
+    return image
+
+
 class Wall(pygame.sprite.Sprite):
     def __init__(self, x, y, groups):
         super().__init__(*groups)
@@ -31,15 +71,18 @@ class Wall(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, width, height, color, groups):
+    def __init__(self, x, y, groups):
         super().__init__(*groups)
 
-        self.rect = pygame.Rect(x, y, width, height)
         self.vx = self.vy = 5
         self.speed = (0, 0)
 
-        self.image = pygame.Surface((width, height))
-        self.image.fill(color)
+        self.image_source = load_image('player.png')
+        self.image_source = pygame.transform.rotate(self.image_source, 270)
+        self.image = self.image_source.copy()
+        self.angle = 0
+        self.mask = pygame.mask.from_surface(self.image)  # пока нигде не используется
+        self.rect = pygame.Rect(x, y + 20, self.image.get_width(), self.image.get_height())
 
         self.can_shoot_flag = True
         self.weapon_delay = 100
@@ -66,11 +109,29 @@ class Player(pygame.sprite.Sprite):
         mouse_btns, mouse_pos = args[1], args[2]
         camera = args[3]
 
+        self.angle = find_angle(self.rect.centerx, self.rect.centery,
+                                *camera.get_real_pos(mouse_pos))
+
+        self.image, self.rect = rot_center(self.image_source, self.angle, *self.rect.center)
+
+        self.rotate_collide(collide_group)
+        self.mask = pygame.mask.from_surface(self.image)
+
         self.move()
         self.collide(collide_group)
         if mouse_btns[0] and self.can_shoot_flag:
             pygame.time.set_timer(CAN_SHOOT_EVENT, self.weapon_delay, True)
             self.shoot(mouse_pos, camera)
+
+    def rotate_collide(self, collide_group):
+        for wall in collide_group:
+            if self.rect.colliderect(wall.rect):
+                e = [(10, 0), (-10, 0), (0, 10), (0, -10)]
+                ans = (0, 0)
+                for elem in e:
+                    if not self.rect.move(*elem).colliderect(wall.rect):
+                        ans = elem
+                self.rect = self.rect.move(*ans)
 
     def collide(self, collide_group):  # коллизия собственного производства
         """Мы смотрим на предыдущий шаг,
@@ -224,33 +285,6 @@ def camera_configure(camera, target_rect):
     return pygame.Rect(l, t, w, h)
 
 
-def load_level(filename):
-    data = open(f"{LEVELS_DIR}/{filename}", 'rt').readlines()
-    data = list(map(str.rstrip, data))
-    return data
-
-
-def terminate():
-    pygame.quit()
-    sys.exit()
-
-
-def load_image(name, colorkey=None):
-    fullname = os.path.join('data', name)
-    # если файл не существует, то выходим
-    if not os.path.isfile(fullname):
-        print(f"Файл с изображением '{fullname}' не найден")
-        sys.exit()
-    image = pygame.image.load(fullname)
-    if colorkey is not None:
-        image = image.convert()
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
-
-    return image
-
-
 def start_screen():
     intro_text = ["ЗАСТАВКА", "",
                   "Правила игры",
@@ -263,7 +297,7 @@ def start_screen():
     font = pygame.font.Font(None, 30)
     text_coord = 50
     for line in intro_text:
-        string_rendered = font.render(line, 1, pygame.Color('black'))
+        string_rendered = font.render(line, True, pygame.Color('black'))
         intro_rect = string_rendered.get_rect()
         text_coord += 10
         intro_rect.top = text_coord
@@ -285,7 +319,7 @@ def start_screen():
 def main():
     level = load_level('test.txt')
 
-    player = Player(100, 100, 50, 50, 'green', (all_sprites,))  # создаем игрока
+    player = Player(100, 100, (all_sprites,))  # создаем игрока
     camera = Camera(camera_configure, len(level[0]) * WALL_WIDTH, len(level) * WALL_HEIGHT)  # создаем камеру
     enemy = Enemy(200, 200, 50, 50, 'red', [(300, 300), (900, 900)], (all_sprites, enemies))
 
@@ -324,15 +358,19 @@ def main():
 
         # lightning
         screen_filter = pygame.surface.Surface(WINDOW_SIZE)
-        screen_filter.fill((220, 220, 220))
+        screen_filter.fill((255, 255, 255))
         # pygame.draw.circle(screen_filter, ('black'), camera.apply(player).center, 300)
         for b in bullets_group:
             # pygame.draw.circle(screen_filter, 'black', camera.apply(b).center, 20)
             screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(b).center)))
         # screen_filter.blit(light, list(map(lambda x: x - 3 * 50, pygame.mouse.get_pos())))
         # screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(player).center)))
-        pygame.draw.circle(screen_filter, 'black', camera.apply(player).center, 100)
+        pygame.draw.circle(screen_filter, 'black', camera.apply(player).center, 200)
         screen.blit(screen_filter, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
+
+        for wl in entities:
+            screen.blit(wl.image, camera.apply(wl))
+        pygame.draw.rect(screen, 'yellow', camera.apply(player), 1)
 
         # flip
         pygame.display.flip()
