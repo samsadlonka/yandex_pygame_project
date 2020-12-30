@@ -12,6 +12,7 @@ WALL_COLOR = 'red'
 LEVELS_DIR = 'levels'
 
 CAN_SHOOT_EVENT = pygame.USEREVENT + 3
+KILL_PLAYER = pygame.USEREVENT + 4
 
 all_sprites = pygame.sprite.Group()  # все объекты
 bullets_group = pygame.sprite.Group()
@@ -33,6 +34,15 @@ def rot_center(image, angle, x, y):
     new_rect = rotated_image.get_rect(center=image.get_rect(center=(x, y)).center)
 
     return rotated_image, new_rect
+
+
+def point_rot(point, x0, y0, alpha):
+    x, y = point
+    alpha = math.radians(alpha)
+    new_x = (x - x0) * math.cos(alpha) - -(y - y0) * math.sin(alpha) + x0
+    new_y = -(x - x0) * math.sin(alpha) + (y - y0) * math.cos(alpha) + y0
+
+    return int(new_x), int(new_y)
 
 
 def load_level(filename):
@@ -76,6 +86,7 @@ class Player(pygame.sprite.Sprite):
 
         self.vx = self.vy = 5
         self.speed = (0, 0)
+        self.health = 100
 
         self.image_source = load_image('player.png')
         self.image_source = pygame.transform.rotate(self.image_source, 270)
@@ -84,6 +95,8 @@ class Player(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)  # пока нигде не используется
         self.rect = pygame.Rect(x, y + 20, self.image.get_width(), self.image.get_height())
 
+        self.shoot_pos = (self.rect.x + 100, self.rect.y + 100)
+        self.shoot_pos_now = None
         self.can_shoot_flag = True
         self.weapon_delay = 100
 
@@ -114,14 +127,28 @@ class Player(pygame.sprite.Sprite):
 
         self.image, self.rect = rot_center(self.image_source, self.angle, *self.rect.center)
 
+        self.shoot_pos = (self.rect.x + 110, self.rect.y + 60)
+        self.shoot_pos_now = point_rot(self.shoot_pos, *self.rect.center, self.angle)
+
         self.rotate_collide(collide_group)
         self.mask = pygame.mask.from_surface(self.image)
 
         self.move()
         self.collide(collide_group)
+        self.bullets_collide()
+
+        if self.health <= 0:
+            self.kill()
+
         if mouse_btns[0] and self.can_shoot_flag:
             pygame.time.set_timer(CAN_SHOOT_EVENT, self.weapon_delay, True)
             self.shoot(mouse_pos, camera)
+
+    def bullets_collide(self):
+        for bullet in bullets_group.sprites():
+            if pygame.sprite.collide_mask(self, bullet):
+                bullet.kill()
+                self.health -= 10
 
     def rotate_collide(self, collide_group):
         for wall in collide_group:
@@ -144,6 +171,7 @@ class Player(pygame.sprite.Sprite):
         without_x = self.rect.move(-self.speed[0], 0)
         without_y = self.rect.move(0, -self.speed[1])
         for wall in collide_group:
+
             if self.rect.colliderect(wall.rect):
                 collide = True
                 if without_x.colliderect(wall.rect):
@@ -161,7 +189,7 @@ class Player(pygame.sprite.Sprite):
     def shoot(self, pos, camera):
         self.can_shoot_flag = False
         real_pos = camera.get_real_pos(pos)
-        bullet = Bullet(self.rect.center, real_pos, (bullets_group, all_sprites))
+        bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -232,6 +260,7 @@ class Bullet(pygame.sprite.Sprite):
         self.image = pygame.Surface((20, 20))
         self.image.fill((250, 250, 0))
         self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect.center = (pos_start[0], pos_start[1])
         self.speed = 1000 / FPS
 
@@ -318,6 +347,8 @@ def start_screen():
 
 def main():
     level = load_level('test.txt')
+    game_over_pic = load_image('game_over.png')
+    game_over_pic = pygame.transform.scale(game_over_pic, WINDOW_SIZE)
 
     player = Player(100, 100, (all_sprites,))  # создаем игрока
     camera = Camera(camera_configure, len(level[0]) * WALL_WIDTH, len(level) * WALL_HEIGHT)  # создаем камеру
@@ -336,13 +367,18 @@ def main():
                 wl = Wall(j * WALL_WIDTH, i * WALL_HEIGHT, (all_sprites, entities))
 
     running = True
-
+    game_over = False
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == CAN_SHOOT_EVENT:
                 player.can_shoot_flag = True
+            if game_over and event.type == pygame.KEYDOWN and \
+                    event.key == pygame.K_SPACE:
+                player = Player(100, 100, (all_sprites,))
+                game_over = False
+
         # updates
         camera.update(player)
 
@@ -371,6 +407,12 @@ def main():
         for wl in entities:
             screen.blit(wl.image, camera.apply(wl))
         pygame.draw.rect(screen, 'yellow', camera.apply(player), 1)
+
+        if player not in all_sprites.sprites():
+            screen.fill('black')
+            screen.blit(game_over_pic, (0, 0))
+
+            game_over = True
 
         # flip
         pygame.display.flip()
