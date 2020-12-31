@@ -1,6 +1,25 @@
+"""
+* доделать стрельюу enemy(адекватно)
+1. модель игрока(2-ух цветов)
+2. вылет пули из оружия
+3. map(2+)
+4. сделать lamp
+5*. Украшение...(для уровня)
+6. Звуки!
+7*. Оружие
+8. menu
+9. рестарт для игрока
+10. Раунд(время, очки..)
+
+n. Онлайн
+"""
+
+
 import os
 import sys
 import math
+from random import randrange
+
 import pygame
 
 pygame.init()
@@ -12,7 +31,7 @@ WALL_COLOR = 'red'
 LEVELS_DIR = 'levels'
 
 CAN_SHOOT_EVENT = pygame.USEREVENT + 3
-KILL_PLAYER = pygame.USEREVENT + 4
+# KILL_PLAYER = pygame.USEREVENT + 4
 
 all_sprites = pygame.sprite.Group()  # все объекты
 bullets_group = pygame.sprite.Group()
@@ -43,6 +62,13 @@ def point_rot(point, x0, y0, alpha):
     new_y = -(x - x0) * math.sin(alpha) + (y - y0) * math.cos(alpha) + y0
 
     return int(new_x), int(new_y)
+
+
+def calculate_direction(x1, y1, x2, y2):
+    distance = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+    cos = (x2 - x1) / distance
+    sin = (y2 - y1) / distance
+    return cos, sin
 
 
 def load_level(filename):
@@ -92,7 +118,8 @@ class Player(pygame.sprite.Sprite):
         self.image_source = pygame.transform.rotate(self.image_source, 270)
         self.image = self.image_source.copy()
         self.angle = 0
-        self.mask = pygame.mask.from_surface(self.image)  # пока нигде не используется
+        self.mask = pygame.mask.from_surface(self.image)
+
         self.rect = pygame.Rect(x, y + 20, self.image.get_width(), self.image.get_height())
 
         self.shoot_pos = (self.rect.x + 100, self.rect.y + 100)
@@ -129,9 +156,9 @@ class Player(pygame.sprite.Sprite):
 
         self.shoot_pos = (self.rect.x + 110, self.rect.y + 60)
         self.shoot_pos_now = point_rot(self.shoot_pos, *self.rect.center, self.angle)
+        self.mask = pygame.mask.from_surface(self.image)
 
         self.rotate_collide(collide_group)
-        self.mask = pygame.mask.from_surface(self.image)
 
         self.move()
         self.collide(collide_group)
@@ -199,6 +226,8 @@ class Enemy(pygame.sprite.Sprite):
         self.image = pygame.Surface((width, height))
         self.image.fill(color)
 
+        self.mask = pygame.mask.from_surface(self.image)
+
         self.x = x
         self.y = y
         self.width = width
@@ -211,13 +240,31 @@ class Enemy(pygame.sprite.Sprite):
         self.current_way = 0
         self.is_move = False
 
+        self.health = 50
+        self.shoot_flag = True
+        self.shoot_delay = 300
+        self.last_shoot_time = None
+        self.clock = pygame.time.Clock()
+        self.view_radius = 100
+
     def update(self, *args, **kwargs):
+        player = args[0]
         if self.is_move:
             self.move_road()
         else:
             self.start_move_to_point(self.way[self.current_way])
             self.current_way += 1
             self.current_way %= len(self.way)
+
+        # self.shoot(player)  # fixit!!!!!!!!!
+
+        if not self.shoot_flag:
+            if self.clock.get_time() - self.last_shoot_time >= self.shoot_delay:
+                self.shoot_flag = True
+
+        self.bullets_collide()
+        if self.health <= 0:
+            self.kill()
 
     def start_move_to_point(self, coord):
         self.end_x = coord[0]
@@ -253,6 +300,23 @@ class Enemy(pygame.sprite.Sprite):
             self.is_move = False
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
+    def shoot(self, player):
+        if math.dist(self.rect.center, player.rect.center) <= self.view_radius and self.shoot_flag:
+            self.shoot_flag = False
+            self.last_shoot_time = self.clock.get_time()
+            print(self.last_shoot_time)
+            cos, sin = calculate_direction(*self.rect.center, *player.rect.center)
+            shoot_x, shoot_y = 100 * cos, 100 * sin
+            bullet = Bullet((shoot_x, shoot_y),
+                            (player.rect.x + randrange(-50, 51), player.rect.y + randrange(-50, 51)),
+                            (all_sprites, bullets_group))
+
+    def bullets_collide(self):
+        for bullet in bullets_group.sprites():
+            if pygame.sprite.collide_mask(self, bullet):
+                bullet.kill()
+                self.health -= 10
+
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, pos_start, pos_end, groups):
@@ -264,7 +328,7 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.center = (pos_start[0], pos_start[1])
         self.speed = 1000 / FPS
 
-        self.cos, self.sin = self.calculate_direction(*pos_start, *pos_end)
+        self.cos, self.sin = calculate_direction(*pos_start, *pos_end)
 
     def update(self):
         self.rect.x += self.cos * self.speed
@@ -272,12 +336,6 @@ class Bullet(pygame.sprite.Sprite):
 
         if pygame.sprite.spritecollide(self, entities, False):
             self.kill()
-
-    def calculate_direction(self, x1, y1, x2, y2):
-        distance = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
-        cos = (x2 - x1) / distance
-        sin = (y2 - y1) / distance
-        return cos, sin
 
 
 class Camera(object):
@@ -357,9 +415,9 @@ def main():
     light = load_image('circle.png')
     light = pygame.transform.scale(light, (100, 100))
 
-    lamps_coord = []
-    for i in range(10):
-        lamps_coord.append((50 * i, 100))
+    # lamps_coord = []
+    # for i in range(10):
+    #     lamps_coord.append((50 * i, 100))
 
     for i in range(len(level)):
         for j in range(len(level[0])):
@@ -384,7 +442,7 @@ def main():
 
         player.update(entities, pygame.mouse.get_pressed(3), pygame.mouse.get_pos(), camera)
         bullets_group.update()
-        enemies.update()
+        enemies.update(player)
 
         # renders
         screen.fill((150, 150, 150))
