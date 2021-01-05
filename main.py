@@ -1,20 +1,3 @@
-"""
-* доделать стрельюу enemy(адекватно)
-1. модель игрока(2-ух цветов)
-2. вылет пули из оружия
-3. map(2+)
-4. сделать lamp
-5*. Украшение...(для уровня)
-6. Звуки!
-7*. Оружие
-8. menu
-9. рестарт для игрока
-10. Раунд(время, очки..)
-
-n. Онлайн
-"""
-
-
 import os
 import sys
 import math
@@ -81,6 +64,11 @@ def terminate():
     pygame.quit()
     sys.exit()
 
+def load_sound(name):
+    fullname = os.path.join('data', name)
+    sound = pygame.mixer.Sound(fullname)
+    return sound
+
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
@@ -119,6 +107,8 @@ class Player(pygame.sprite.Sprite):
         self.image = self.image_source.copy()
         self.angle = 0
         self.mask = pygame.mask.from_surface(self.image)
+
+        self.shoot_sound = load_sound('pew.wav')
 
         self.rect = pygame.Rect(x, y + 20, self.image.get_width(), self.image.get_height())
 
@@ -216,7 +206,12 @@ class Player(pygame.sprite.Sprite):
     def shoot(self, pos, camera):
         self.can_shoot_flag = False
         real_pos = camera.get_real_pos(pos)
-        bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
+        if pos[0] > self.rect.right or pos[0] < self.rect.left:
+            bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
+            self.shoot_sound.play()
+        elif  pos[1] > self.rect.bottom or pos[1] < self.rect.top:
+            bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
+            self.shoot_sound.play()
 
 
 class Enemy(pygame.sprite.Sprite):
