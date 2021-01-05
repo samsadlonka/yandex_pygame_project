@@ -64,6 +64,7 @@ def terminate():
     pygame.quit()
     sys.exit()
 
+
 def load_sound(name):
     fullname = os.path.join('data', name)
     sound = pygame.mixer.Sound(fullname)
@@ -206,10 +207,11 @@ class Player(pygame.sprite.Sprite):
     def shoot(self, pos, camera):
         self.can_shoot_flag = False
         real_pos = camera.get_real_pos(pos)
-        if pos[0] > self.rect.right or pos[0] < self.rect.left:
+        # для проверки нужна реальная позиция мыши(в координатах игры, а не окна)
+        if real_pos[0] > self.rect.right or real_pos[0] < self.rect.left:
             bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
             self.shoot_sound.play()
-        elif  pos[1] > self.rect.bottom or pos[1] < self.rect.top:
+        elif real_pos[1] > self.rect.bottom or real_pos[1] < self.rect.top:
             bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
             self.shoot_sound.play()
 
@@ -474,5 +476,5 @@ def main():
 
 
 if __name__ == '__main__':
-    # start_screen()
+    start_screen()
     main()
