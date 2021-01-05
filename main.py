@@ -5,6 +5,8 @@ from random import randrange
 
 import pygame
 
+from network import Network
+
 pygame.init()
 
 WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT = 1280, 720
@@ -15,11 +17,13 @@ LEVELS_DIR = 'levels'
 
 CAN_SHOOT_EVENT = pygame.USEREVENT + 3
 # KILL_PLAYER = pygame.USEREVENT + 4
+ADD_BULLETS = []
 
 all_sprites = pygame.sprite.Group()  # все объекты
 bullets_group = pygame.sprite.Group()
 entities = pygame.sprite.Group()  # пока тут только walls
 enemies = pygame.sprite.Group()
+player2_group = pygame.sprite.Group()
 
 screen = pygame.display.set_mode(WINDOW_SIZE)
 clock = pygame.time.Clock()
@@ -210,10 +214,30 @@ class Player(pygame.sprite.Sprite):
         # для проверки нужна реальная позиция мыши(в координатах игры, а не окна)
         if real_pos[0] > self.rect.right or real_pos[0] < self.rect.left:
             bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
+            ADD_BULLETS.append((self.shoot_pos_now, real_pos))
+
             self.shoot_sound.play()
         elif real_pos[1] > self.rect.bottom or real_pos[1] < self.rect.top:
             bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
+            ADD_BULLETS.append((self.shoot_pos_now, real_pos))
+
             self.shoot_sound.play()
+
+
+class Player2(pygame.sprite.Sprite):
+    def __init__(self, groups):
+        super().__init__(*groups)
+        self.rect = pygame.Rect(0, 0, 100, 100)
+        self.source_image = load_image('player.png')
+        self.image = load_image('player.png')
+        self.mask = pygame.mask.from_surface(self.image)
+
+    def change_pos(self, pos):
+        self.rect.topleft = pos
+
+    def change_angle(self, angle):
+        self.image, self.rect = rot_center(self.source_image, angle - 90, *self.rect.center)
+        self.mask = pygame.mask.from_surface(self.image)
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -331,11 +355,12 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.x += self.cos * self.speed
         self.rect.y += self.sin * self.speed
 
-        if pygame.sprite.spritecollide(self, entities, False):
+        if pygame.sprite.spritecollide(self, entities, False) or pygame.sprite.collide_mask(self,
+                                                                                            player2_group.sprites()[0]):
             self.kill()
 
 
-class Camera(object):
+class Camera:
     def __init__(self, camera_func, width, height):
         self.camera_func = camera_func
         self.state = pygame.Rect(0, 0, width, height)
@@ -406,8 +431,13 @@ def main():
     game_over_pic = pygame.transform.scale(game_over_pic, WINDOW_SIZE)
 
     player = Player(100, 100, (all_sprites,))  # создаем игрока
+    player2 = Player2((all_sprites, player2_group))
     camera = Camera(camera_configure, len(level[0]) * WALL_WIDTH, len(level) * WALL_HEIGHT)  # создаем камеру
     enemy = Enemy(200, 200, 50, 50, 'red', [(300, 300), (900, 900)], (all_sprites, enemies))
+
+    """NETWORK"""
+    n = Network()
+    """DANGER!"""
 
     light = load_image('circle.png')
     light = pygame.transform.scale(light, (100, 100))
@@ -424,6 +454,16 @@ def main():
     running = True
     game_over = False
     while running:
+
+        """NETWORK!"""
+        player2_pos, player2_angle, other_bullets_coords = n.send(player.rect.topleft, player.angle, ADD_BULLETS)
+        player2.change_pos(player2_pos)
+        player2.change_angle(player2_angle)
+        for blt in other_bullets_coords:
+            bullet = Bullet(*blt, (bullets_group, all_sprites))
+        ADD_BULLETS.clear()
+        """DANGER!"""
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -438,8 +478,8 @@ def main():
         camera.update(player)
 
         player.update(entities, pygame.mouse.get_pressed(3), pygame.mouse.get_pos(), camera)
-        bullets_group.update()
         enemies.update(player)
+        bullets_group.update()
 
         # renders
         screen.fill((150, 150, 150))
@@ -476,5 +516,11 @@ def main():
 
 
 if __name__ == '__main__':
-    start_screen()
+    # start_screen()
+
+    # danger
+    from webContainer import WebContainer
+
+    # not danger
+
     main()
