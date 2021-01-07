@@ -110,6 +110,7 @@ class Player(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
         self.shoot_sound = load_sound('pew.wav')
+        self.kill_sound = load_sound('kill.wav')
 
         self.rect = pygame.Rect(x, y + 20, self.image.get_width(), self.image.get_height())
 
@@ -156,6 +157,7 @@ class Player(pygame.sprite.Sprite):
         self.bullets_collide()
 
         if self.health <= 0:
+            self.kill_sound.play()
             self.kill()
 
         if mouse_btns[0] and self.can_shoot_flag:
@@ -210,10 +212,10 @@ class Player(pygame.sprite.Sprite):
         # для проверки нужна реальная позиция мыши(в координатах игры, а не окна)
         if real_pos[0] > self.rect.right or real_pos[0] < self.rect.left:
             bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
-            self.shoot_sound.play()
+            pygame.mixer.find_channel(True).play(self.shoot_sound)
         elif real_pos[1] > self.rect.bottom or real_pos[1] < self.rect.top:
             bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
-            self.shoot_sound.play()
+            pygame.mixer.find_channel(True).play(self.shoot_sound)
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -370,7 +372,7 @@ def camera_configure(camera, target_rect):
 
 
 def start_screen():
-    intro_text = ["ЗАСТАВКА", "",
+    intro_text = ["Нажмите, чтобы начать", "",
                   "Правила игры",
                   "Если в правилах несколько строк,",
                   "приходится выводить их построчно"]
@@ -401,7 +403,7 @@ def start_screen():
 
 
 def main():
-    level = load_level('test.txt')
+    level = load_level('normal map.txt')
     game_over_pic = load_image('game_over.png')
     game_over_pic = pygame.transform.scale(game_over_pic, WINDOW_SIZE)
 
