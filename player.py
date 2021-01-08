@@ -8,6 +8,7 @@ class Player(pygame.sprite.Sprite):
         self.vx = self.vy = 5
         self.speed = (0, 0)
         self.health = 100
+        self.is_alive = True
 
         self.image_source = load_image('player.png')
         self.image_source = pygame.transform.rotate(self.image_source, 270)
@@ -23,6 +24,9 @@ class Player(pygame.sprite.Sprite):
         self.shoot_pos_now = None
         self.can_shoot_flag = True
         self.weapon_delay = 100
+
+        self.k_death = 0
+        self.score = 0
 
     def move(self):
         keys = pygame.key.get_pressed()
@@ -66,6 +70,9 @@ class Player(pygame.sprite.Sprite):
 
         if self.health <= 0:
             self.kill()
+            self.is_alive = False
+            self.rect.topleft = (-500, -500)  # перемещаем игрока за экран
+            self.k_death += 1
 
         if mouse_btns[0] and self.can_shoot_flag:
             pygame.time.set_timer(CAN_SHOOT_EVENT, self.weapon_delay, True)

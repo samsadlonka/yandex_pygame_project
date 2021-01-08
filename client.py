@@ -1,3 +1,6 @@
+import datetime as dt
+import random
+
 from func import *
 from network import Network
 from player import Player, Bullet
@@ -21,6 +24,14 @@ class Wall(pygame.sprite.Sprite):
         super().__init__(*groups)
         self.image = pygame.Surface((WALL_WIDTH, WALL_HEIGHT))
         self.image.fill(WALL_COLOR)
+        self.rect = pygame.Rect(x, y, WALL_WIDTH, WALL_HEIGHT)
+
+
+class SpawnPoint(pygame.sprite.Sprite):
+    def __init__(self, x, y, groups):
+        super().__init__(*groups)
+        self.image = pygame.Surface((WALL_WIDTH, WALL_HEIGHT))
+        self.image.fill('green')
         self.rect = pygame.Rect(x, y, WALL_WIDTH, WALL_HEIGHT)
 
 
@@ -71,10 +82,58 @@ def start_screen():
         clock.tick(FPS)
 
 
+def show_restart_info(scr):
+    fnt = pygame.font.Font(None, 50)
+    text = fnt.render('Press "Space" to respawn', True, (100, 100, 255))
+    scr.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2, WINDOW_HEIGHT // 2 - text.get_height() // 2))
+
+
+def show_player_hp(scr, player):
+    fnt = pygame.font.Font(None, 50)
+    text = fnt.render('HP: {}'.format(player.health), True, (255, 255, 255))
+    pygame.draw.rect(scr, BACKGROUND_COLOR,
+                     (0, WINDOW_HEIGHT - text.get_height() - 20, text.get_width() + 20, text.get_height() + 20))
+    scr.blit(text, (10, WINDOW_HEIGHT - text.get_height() - 10))
+
+
+def show_round_time(scr, round_start_time):
+    secs = int((dt.datetime.now() - round_start_time).total_seconds())
+    secs = 60 * ROUND_DURATION_MIN - secs
+    time = dt.time(minute=secs // 60, second=secs % 60).strftime('%M:%S')
+
+    fnt = pygame.font.Font(None, 50)
+    text = fnt.render(time, True, (255, 255, 255))
+    pygame.draw.rect(scr, BACKGROUND_COLOR,
+                     (WINDOW_WIDTH - text.get_width() - 20, WINDOW_HEIGHT - text.get_height() - 20,
+                      text.get_width() + 20, text.get_height() + 20))
+    scr.blit(text, (WINDOW_WIDTH - text.get_width() - 10, WINDOW_HEIGHT - text.get_height() - 10))
+
+
+def show_score(scr, player):
+    fnt = pygame.font.Font(None, 50)
+    text = fnt.render(f"You {player.score}:{player.k_death} Opponent", True, (255, 255, 255))
+    pygame.draw.rect(scr, BACKGROUND_COLOR, (
+        WINDOW_WIDTH // 2 - text.get_width() // 2 - 20, WINDOW_HEIGHT - text.get_height() - 20, text.get_width() + 20,
+        text.get_height() + 20))
+
+    scr.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2 - 10, WINDOW_HEIGHT - text.get_height() - 10))
+
+
+def show_escape_info(scr):
+    fnt = pygame.font.Font(None, 50)
+    text = fnt.render('Press "Esc" to back to menu', True, (100, 100, 255))
+    scr.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2, 500))
+
+
 def main():
     level = load_level('test.txt')
+    spawn_points = []
     game_over_pic = load_image('game_over.png')
     game_over_pic = pygame.transform.scale(game_over_pic, WINDOW_SIZE)
+
+    # round timer
+    pygame.time.set_timer(ROUND_END, ROUND_DURATION_MIN * 60 * 1000, True)
+    start_time = dt.datetime.now()
 
     player = Player(100, 100, (all_sprites,))  # создаем игрока
     player2 = Player2((all_sprites, player2_group))
@@ -96,13 +155,19 @@ def main():
         for j in range(len(level[0])):
             if level[i][j] == '-':
                 wl = Wall(j * WALL_WIDTH, i * WALL_HEIGHT, (all_sprites, entities))
+            if level[i][j] == 'S':
+                spawn_points.append((j * WALL_WIDTH, i * WALL_HEIGHT))
+                sp_p = SpawnPoint(*spawn_points[-1], (all_sprites,))
 
+    player.rect.topleft = random.choice(spawn_points)
+    player.is_alive = False
     running = True
     game_over = False
     while running:
 
         """NETWORK!"""
-        player2_pos, player2_angle, other_bullets_coords = n.send(player.rect.topleft, player.angle, ADD_BULLETS)
+        player2_pos, player2_angle, other_bullets_coords, player.score = n.send(player.rect.topleft, player.angle,
+                                                                                ADD_BULLETS, player.k_death)
         player2.change_pos(player2_pos)
         player2.change_angle(player2_angle)
         for blt in other_bullets_coords:
@@ -116,45 +181,59 @@ def main():
                 running = False
             if event.type == CAN_SHOOT_EVENT:
                 player.can_shoot_flag = True
-            if game_over and event.type == pygame.KEYDOWN and \
+            if not player.is_alive and event.type == pygame.KEYDOWN and \
                     event.key == pygame.K_SPACE:
-                player = Player(100, 100, (all_sprites,))
-                game_over = False
+                player.rect.topleft = random.choice(spawn_points)
+                player.is_alive = True
+                player.health = 100
+            if event.type == ROUND_END:
+                game_over = True
+            if game_over and event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                # start_menu()
+                return 0
+        if not game_over:
+            # updates
+            camera.update(player)
+            if player.is_alive:
+                player.update(entities, pygame.mouse.get_pressed(3), pygame.mouse.get_pos(), camera, bullets_group,
+                              all_sprites)
+            enemies.update(player, bullets_group, all_sprites)
+            bullets_group.update(entities, player2)
 
-        # updates
-        camera.update(player)
+            # renders
+            screen.fill((150, 150, 150))
 
-        player.update(entities, pygame.mouse.get_pressed(3), pygame.mouse.get_pos(), camera, bullets_group, all_sprites)
-        enemies.update(player, bullets_group, all_sprites)
-        bullets_group.update(entities, player2)
+            for e in all_sprites:
+                screen.blit(e.image, camera.apply(e))
+            screen.blit(player.image, camera.apply(player))
 
-        # renders
-        screen.fill((150, 150, 150))
+            # lightning
+            screen_filter = pygame.surface.Surface(WINDOW_SIZE)
+            screen_filter.fill((255, 255, 255))
+            # pygame.draw.circle(screen_filter, ('black'), camera.apply(player).center, 300)
+            for b in bullets_group:
+                # pygame.draw.circle(screen_filter, 'black', camera.apply(b).center, 20)
+                screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(b).center)))
+            # screen_filter.blit(light, list(map(lambda x: x - 3 * 50, pygame.mouse.get_pos())))
+            # screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(player).center)))
+            pygame.draw.circle(screen_filter, 'black', camera.apply(player).center, 200)
+            screen.blit(screen_filter, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
 
-        for e in all_sprites:
-            screen.blit(e.image, camera.apply(e))
+            for wl in entities:
+                screen.blit(wl.image, camera.apply(wl))
+            pygame.draw.rect(screen, 'yellow', camera.apply(player), 1)
 
-        # lightning
-        screen_filter = pygame.surface.Surface(WINDOW_SIZE)
-        screen_filter.fill((255, 255, 255))
-        # pygame.draw.circle(screen_filter, ('black'), camera.apply(player).center, 300)
-        for b in bullets_group:
-            # pygame.draw.circle(screen_filter, 'black', camera.apply(b).center, 20)
-            screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(b).center)))
-        # screen_filter.blit(light, list(map(lambda x: x - 3 * 50, pygame.mouse.get_pos())))
-        # screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(player).center)))
-        pygame.draw.circle(screen_filter, 'black', camera.apply(player).center, 200)
-        screen.blit(screen_filter, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
+            show_player_hp(screen, player)
+            show_round_time(screen, start_time)
+            show_score(screen, player)
 
-        for wl in entities:
-            screen.blit(wl.image, camera.apply(wl))
-        pygame.draw.rect(screen, 'yellow', camera.apply(player), 1)
-
-        if player not in all_sprites.sprites():
-            screen.fill('black')
+            if not player.is_alive:
+                screen.fill('black')
+                show_restart_info(screen)
+        else:
             screen.blit(game_over_pic, (0, 0))
-
-            game_over = True
+            show_score(screen, player)
+            show_escape_info(screen)
 
         # flip
         pygame.display.flip()
@@ -166,8 +245,11 @@ if __name__ == '__main__':
     # start_screen()
 
     # danger
+    #   |
+    #  \ /
+    #   .
     from webContainer import WebContainer
 
-    # not danger
+    # ----not danger----
 
     main()
