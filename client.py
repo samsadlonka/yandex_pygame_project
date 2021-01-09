@@ -52,7 +52,7 @@ class Player2(pygame.sprite.Sprite):
 
 
 def start_screen():
-    intro_text = ["ЗАСТАВКА", "",
+    intro_text = ["Начать игру", "",
                   "Правила игры",
                   "Если в правилах несколько строк,",
                   "приходится выводить их построчно"]
@@ -126,7 +126,7 @@ def show_escape_info(scr):
 
 
 def main():
-    level = load_level('test.txt')
+    level = load_level('normal map.txt')
     spawn_points = []
     game_over_pic = load_image('game_over.png')
     game_over_pic = pygame.transform.scale(game_over_pic, WINDOW_SIZE)

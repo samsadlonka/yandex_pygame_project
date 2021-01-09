@@ -17,6 +17,7 @@ class Player(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
         self.shoot_sound = load_sound('pew.wav')
+        self.kill_sound = load_sound('kill.wav')
 
         self.rect = pygame.Rect(x, y + 20, self.image.get_width(), self.image.get_height())
 
@@ -128,12 +129,12 @@ class Player(pygame.sprite.Sprite):
             bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
             ADD_BULLETS.append((self.shoot_pos_now, real_pos))
 
-            self.shoot_sound.play()
+            pygame.mixer.find_channel(True).play(self.shoot_sound)
         elif real_pos[1] > self.rect.bottom or real_pos[1] < self.rect.top:
             bullet = Bullet(self.shoot_pos_now, real_pos, (bullets_group, all_sprites))
             ADD_BULLETS.append((self.shoot_pos_now, real_pos))
 
-            self.shoot_sound.play()
+            pygame.mixer.find_channel(True).play(self.shoot_sound)
 
 
 class Bullet(pygame.sprite.Sprite):
