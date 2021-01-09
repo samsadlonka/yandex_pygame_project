@@ -9,7 +9,7 @@ LEVELS_DIR = 'levels'
 # events
 CAN_SHOOT_EVENT = pygame.USEREVENT + 3
 ROUND_END = pygame.USEREVENT + 4
-ROUND_DURATION_MIN = 1
+ROUND_DURATION_MIN = 5
 ADD_BULLETS = []
 
 # colors
