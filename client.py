@@ -128,6 +128,15 @@ def show_escape_info(scr):
     scr.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2, 500))
 
 
+def close_game():
+    global all_sprites, bullets_group, entities, enemies, player2_group
+    all_sprites = pygame.sprite.Group()  # все объекты
+    bullets_group = pygame.sprite.Group()
+    entities = pygame.sprite.Group()  # пока тут только walls
+    enemies = pygame.sprite.Group()
+    player2_group = pygame.sprite.Group()
+
+
 def main(level_map):
     """NETWORK"""
     n = Network()
@@ -281,7 +290,6 @@ def menu():
     pygame.init()
 
     pygame.display.set_caption('menu')
-    screen = pygame.display.set_mode(WINDOW_SIZE)
 
     manager = pygame_gui.UIManager(WINDOW_SIZE)
 
@@ -339,6 +347,7 @@ def menu():
                         wrong_ip_flag = False
                         try:
                             main(level)
+                            close_game()
                         except ConnectionError:
                             wrong_ip_flag = True
             manager.process_events(event)
