@@ -1,6 +1,7 @@
 import math
 import os
 import sys
+import pytmx
 
 
 from const import *
@@ -36,8 +37,7 @@ def calculate_direction(x1, y1, x2, y2):
 
 
 def load_level(filename):
-    data = open(f"levels/{filename}", 'rt').readlines()
-    data = list(map(str.rstrip, data))
+    data = pytmx.load_pygame(f"{'levels'}/{filename}")
     return data
 
 

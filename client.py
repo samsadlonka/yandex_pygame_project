@@ -39,8 +39,8 @@ class Player2(pygame.sprite.Sprite):
     def __init__(self, groups):
         super().__init__(*groups)
         self.rect = pygame.Rect(0, 0, 100, 100)
-        self.source_image = load_image('player.png')
-        self.image = load_image('player.png')
+        self.source_image = load_image('player2.png')
+        self.image = load_image('player2.png')
         self.mask = pygame.mask.from_surface(self.image)
 
     def change_pos(self, pos):
@@ -141,6 +141,12 @@ def main(level_map):
     """DANGER!"""
 
     level = load_level(level_map)
+def get_tile_id(level, position):
+    return level.tiledgidmap[level.get_tile_gid(*position)]
+
+
+def main():
+    level = load_level('map.tmx')
     spawn_points = []
     game_over_pic = load_image('game_over.png')
     game_over_pic = pygame.transform.scale(game_over_pic, WINDOW_SIZE)
@@ -150,7 +156,7 @@ def main(level_map):
 
     player = Player(100, 100, (all_sprites,))  # создаем игрока
     player2 = Player2((all_sprites, player2_group))
-    camera = Camera(camera_configure, len(level[0]) * WALL_WIDTH, len(level) * WALL_HEIGHT)  # создаем камеру
+    camera = Camera(camera_configure, level.width * WALL_WIDTH, level.height * WALL_HEIGHT)  # создаем камеру
     enemy = Enemy(200, 200, 50, 50, 'red', [(300, 300), (900, 900)], (all_sprites, enemies))
 
     light = load_image('circle.png')
@@ -158,11 +164,21 @@ def main(level_map):
 
     lamps_coord = [(500, 500), (2000, 1000)]  # сделлать загрузку из map
 
-    for i in range(len(level)):
-        for j in range(len(level[0])):
-            if level[i][j] == '-':
+    for i in range(level.height):
+        for j in range(level.width):
+            image = level.get_tile_image(j, i, 0)
+            screen.blit(image, (j * level.tilewidth, i * level.tilewidth))
+            if get_tile_id(level, (j, i, 0)) == 1730 or get_tile_id(level, (j, i, 0)) == 1837:
                 wl = Wall(j * WALL_WIDTH, i * WALL_HEIGHT, (all_sprites, entities))
-            if level[i][j] == 'S':
+            elif get_tile_id(level, (j, i, 0)) == 1729 or get_tile_id(level, (j, i, 0)) == 2165:
+                wl = Wall(j * WALL_WIDTH, i * WALL_HEIGHT, (all_sprites, entities))
+            elif get_tile_id(level, (j, i, 0)) == 2486 or get_tile_id(level, (j, i, 0)) == 2485:
+                wl = Wall(j * WALL_WIDTH, i * WALL_HEIGHT, (all_sprites, entities))
+            elif get_tile_id(level, (j, i, 0)) == 2057 or get_tile_id(level, (j, i, 0)) == 1736:
+                wl = Wall(j * WALL_WIDTH, i * WALL_HEIGHT, (all_sprites, entities))
+            elif get_tile_id(level, (j, i, 0)) == 1844 or get_tile_id(level, (j, i, 0)) == 2492:
+                wl = Wall(j * WALL_WIDTH, i * WALL_HEIGHT, (all_sprites, entities))
+            if get_tile_id(level, (j, i, 0)) == 4170:
                 spawn_points.append((j * WALL_WIDTH, i * WALL_HEIGHT))
                 sp_p = SpawnPoint(*spawn_points[-1], (all_sprites,))
 
@@ -200,6 +216,7 @@ def main(level_map):
             if event.type == ROUND_END:
                 game_over = True
             if game_over and event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                # start_menu()
                 return 0
         if not game_over:
             # updates

@@ -17,6 +17,7 @@ class Player(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
         self.shoot_sound = load_sound('pew.wav')
+        self.move_sound = load_sound('move_sound.wav')
         self.kill_sound = load_sound('kill.wav')
 
         self.rect = pygame.Rect(x, y + 20, self.image.get_width(), self.image.get_height())
@@ -44,6 +45,8 @@ class Player(pygame.sprite.Sprite):
         self.speed = (x_speed, y_speed)
 
         self.rect = self.rect.move(*self.speed)
+        if x_speed != 0 or y_speed != 0:
+            pygame.mixer.find_channel(True).play(self.move_sound)
 
     def update(self, *args, **kwargs):
         collide_group = args[0]

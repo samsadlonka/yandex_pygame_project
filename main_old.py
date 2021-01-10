@@ -54,7 +54,7 @@ def calculate_direction(x1, y1, x2, y2):
     return cos, sin
 
 
-def load_level(filename):
+def load_level(filename: object) -> object:
     data = open(f"{LEVELS_DIR}/{filename}", 'rt').readlines()
     data = list(map(str.rstrip, data))
     return data
@@ -90,9 +90,6 @@ def load_image(name, colorkey=None):
 class Wall(pygame.sprite.Sprite):
     def __init__(self, x, y, groups):
         super().__init__(*groups)
-        self.image = pygame.Surface((WALL_WIDTH, WALL_HEIGHT))
-        self.image.fill(WALL_COLOR)
-        self.rect = pygame.Rect(x, y, WALL_WIDTH, WALL_HEIGHT)
 
 
 class Player(pygame.sprite.Sprite):
