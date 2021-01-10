@@ -52,6 +52,10 @@ def load_sound(name):
     return sound
 
 
+def get_tile_id(level, position):
+    return level.tiledgidmap[level.get_tile_gid(*position)]
+
+
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     # если файл не существует, то выходим

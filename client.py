@@ -141,12 +141,6 @@ def main(level_map):
     """DANGER!"""
 
     level = load_level(level_map)
-def get_tile_id(level, position):
-    return level.tiledgidmap[level.get_tile_gid(*position)]
-
-
-def main():
-    level = load_level('map.tmx')
     spawn_points = []
     game_over_pic = load_image('game_over.png')
     game_over_pic = pygame.transform.scale(game_over_pic, WINDOW_SIZE)
@@ -296,7 +290,7 @@ def menu():
         text='Start Game',
         manager=manager,
     )
-    level = 'easy map.txt'
+    level = 'easy map.tmx'
     diff = pygame_gui.elements.ui_drop_down_menu.UIDropDownMenu(
         options_list=['Easy', 'Hard'],
         starting_option='Easy',
@@ -335,9 +329,9 @@ def menu():
 
                 if event.user_type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
                     if event.text == 'Easy':
-                        level = 'easy map.txt'
+                        level = 'easy map.tmx'
                     elif event.text == 'Hard':
-                        level = 'normal map.txt'
+                        level = 'normal map.tmx'
 
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == switch:
