@@ -75,17 +75,18 @@ def threaded_client(conn, player):
                                          bullets=online.bullets_1[:], score=online.score[1])
                     online.bullets_1.clear()
 
-                print('Received:', data)
-                print('Sending:', reply)
+                # print('Received:', data)
+                # print('Sending:', reply)
             conn.sendall(pickle.dumps(reply))
         except:
             break
     print('Lost Connection')
     conn.close()
-    if current_player == 0:
+    if player == 0:
         online.p1_pos = (-500, -500)
-    elif current_player == 1:
+    elif player == 1:
         online.p2_pos = (-500, -500)
+    print(online.p1_pos, online.p2_pos)
     current_player -= 1
     online.level = None
 

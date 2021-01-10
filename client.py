@@ -19,6 +19,7 @@ screen = pygame.display.set_mode(WINDOW_SIZE)
 clock = pygame.time.Clock()
 pygame.time.set_timer(MYEVENTTYPE, 180)
 
+
 class Wall(pygame.sprite.Sprite):
     def __init__(self, image, x, y, groups):
         super().__init__(*groups)
@@ -126,6 +127,12 @@ def show_escape_info(scr):
     scr.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2, 500))
 
 
+def show_info_player_disconnect(scr):
+    fnt = pygame.font.Font(None, 50)
+    text = fnt.render('Opponent is disconnected :(', True, (255, 255, 255))
+    scr.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2, 600))
+
+
 def close_game():
     global all_sprites, bullets_group, entities, enemies, player2_group
     all_sprites = pygame.sprite.Group()  # все объекты
@@ -159,7 +166,6 @@ def main(level_map):
     player2 = Player2((all_sprites, player2_group))
     camera = Camera(camera_configure, level.width * WALL_WIDTH, level.height * WALL_HEIGHT)  # создаем камеру
 
-
     light = load_image('circle.png')
     light = pygame.transform.scale(light, (400, 400))
 
@@ -179,8 +185,10 @@ def main(level_map):
     player.is_alive = False
     running = True
     game_over = False
+    flag_show_player_disconnect = False
+    flag_player2_dead = True
     while running:
-
+        prev_p_score = player.score
         """NETWORK!"""
         player2_pos, player2_angle, other_bullets_coords, player.score = n.send(player.rect.topleft, player.angle,
                                                                                 ADD_BULLETS, player.k_death)
@@ -192,10 +200,17 @@ def main(level_map):
         ADD_BULLETS.clear()
         """DANGER!"""
 
+        if player.score != prev_p_score:
+            flag_player2_dead = True
+
         if start_time is None and player2_pos[0] >= 0 and player2_pos[1] >= 0:
             start_time = dt.datetime.now()
             pygame.time.set_timer(ROUND_END, ROUND_DURATION_MIN * 60 * 1000, True)
+            flag_player2_dead = False
             enemy = Enemy(200, 200, 50, 50, 'red', [(300, 300), (900, 900)], (all_sprites, enemies))
+        elif not flag_player2_dead and start_time and player2_pos[0] < 0 and player2_pos[1] < 0:
+            game_over = True
+            flag_show_player_disconnect = True
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -235,7 +250,7 @@ def main(level_map):
             screen_filter.fill((255, 255, 255))
             # pygame.draw.circle(screen_filter, ('black'), camera.apply(player).center, 300)
             for b in bullets_group:
-                pygame.draw.circle(screen_filter, 'black', camera.apply(b).center, 12)
+                pygame.draw.circle(screen_filter, 'black', camera.apply(b).center, 14)
                 # screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(b).center)))
             """Попытка сделать четверть окружности для поля зрения игрока"""
             # screen_filter.blit(light, list(map(lambda x: x - 3 * 50, pygame.mouse.get_pos())))
@@ -271,6 +286,8 @@ def main(level_map):
             screen.blit(game_over_pic, (0, 0))
             show_score(screen, player)
             show_escape_info(screen)
+            if flag_show_player_disconnect:
+                show_info_player_disconnect(screen)
 
         # flip
         pygame.display.flip()
@@ -319,8 +336,8 @@ def menu():
                 confirmation_dialog = pygame_gui.windows.UIConfirmationDialog(
                     rect=pygame.Rect(WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 - 100, 300, 200),
                     manager=manager,
-                    window_title='aaaa',
-                    action_long_desc='A u sure?',
+                    window_title='Exit Game',
+                    action_long_desc='Are you sure?',
                     action_short_name='OK',
                     blocking=True
                 )

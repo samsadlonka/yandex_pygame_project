@@ -25,7 +25,7 @@ class Player(pygame.sprite.Sprite):
         self.shoot_pos = (self.rect.x + 100, self.rect.y + 100)
         self.shoot_pos_now = None
         self.can_shoot_flag = True
-        self.weapon_delay = 100
+        self.weapon_delay = 150
 
         self.k_death = 0
         self.score = 0
@@ -80,6 +80,7 @@ class Player(pygame.sprite.Sprite):
             self.is_alive = False
             self.rect.topleft = (-500, -500)  # перемещаем игрока за экран
             self.k_death += 1
+            pygame.mixer.find_channel(True).play(self.kill_sound)
 
         if mouse_btns[0] and self.can_shoot_flag:
             pygame.time.set_timer(CAN_SHOOT_EVENT, self.weapon_delay, True)
