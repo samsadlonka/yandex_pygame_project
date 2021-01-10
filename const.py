@@ -23,3 +23,6 @@ client_ip = 'localhost'
 # Map
 WALLS_IDs = [1730, 1837, 1729, 2165, 2486, 2485, 2057, 1736, 1844, 2492]
 SPAWN_IDs = [4170]
+
+MYEVENTTYPE = pygame.USEREVENT + 1
+MOVE_SOUND = 0

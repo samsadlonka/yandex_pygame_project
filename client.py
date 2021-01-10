@@ -17,7 +17,7 @@ player2_group = pygame.sprite.Group()
 
 screen = pygame.display.set_mode(WINDOW_SIZE)
 clock = pygame.time.Clock()
-
+pygame.time.set_timer(MYEVENTTYPE, 180)
 
 class Wall(pygame.sprite.Sprite):
     def __init__(self, image, x, y, groups):
@@ -202,6 +202,8 @@ def main(level_map):
                 running = False
             if event.type == CAN_SHOOT_EVENT:
                 player.can_shoot_flag = True
+            if event.type == MYEVENTTYPE and player.move_sound == 1:
+                pygame.mixer.find_channel(True).play(load_sound('move_sound.wav'))
             if not player.is_alive and event.type == pygame.KEYDOWN and \
                     event.key == pygame.K_SPACE:
                 player.rect.topleft = random.choice(spawn_points)
