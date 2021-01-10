@@ -3,10 +3,9 @@ import pygame_gui
 
 WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT = 1280, 720
 FPS = 60
-WALL_WIDTH = WALL_HEIGHT = 32
+WALL_WIDTH = WALL_HEIGHT = TILE_WIDTH = TILE_HEIGHT = 32
 WALL_COLOR = 'red'
 LEVELS_DIR = 'levels'
-
 
 # events
 CAN_SHOOT_EVENT = pygame.USEREVENT + 3
@@ -17,7 +16,10 @@ ADD_BULLETS = []
 # colors
 BACKGROUND_COLOR = '#002137'
 
-
 # NET
 SERVER_IP = 'localhost'
 client_ip = 'localhost'
+
+# Map
+WALLS_IDs = [1730, 1837, 1729, 2165, 2486, 2485, 2057, 1736, 1844, 2492]
+SPAWN_IDs = [4170]
