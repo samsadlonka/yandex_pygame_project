@@ -97,9 +97,12 @@ def show_player_hp(scr, player):
 
 
 def show_round_time(scr, round_start_time):
-    secs = int((dt.datetime.now() - round_start_time).total_seconds())
-    secs = 60 * ROUND_DURATION_MIN - secs
-    time = dt.time(minute=secs // 60, second=secs % 60).strftime('%M:%S')
+    if round_start_time:
+        secs = int((dt.datetime.now() - round_start_time).total_seconds())
+        secs = 60 * ROUND_DURATION_MIN - secs
+        time = dt.time(minute=secs // 60, second=secs % 60).strftime('%M:%S')
+    else:
+        time = 'Waiting for player'
 
     fnt = pygame.font.Font(None, 50)
     text = fnt.render(time, True, (255, 255, 255))
@@ -125,31 +128,35 @@ def show_escape_info(scr):
     scr.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2, 500))
 
 
-def main():
-    level = load_level('normal map.txt')
+def main(level_map):
+    """NETWORK"""
+    n = Network()
+
+    p = n.getP()
+    if p == 0:
+        n.set_level(level_map)
+    elif p == 1:
+        level_map = n.get_level()
+
+    """DANGER!"""
+
+    level = load_level(level_map)
     spawn_points = []
     game_over_pic = load_image('game_over.png')
     game_over_pic = pygame.transform.scale(game_over_pic, WINDOW_SIZE)
 
     # round timer
-    pygame.time.set_timer(ROUND_END, ROUND_DURATION_MIN * 60 * 1000, True)
-    start_time = dt.datetime.now()
+    start_time = None
 
     player = Player(100, 100, (all_sprites,))  # создаем игрока
     player2 = Player2((all_sprites, player2_group))
     camera = Camera(camera_configure, len(level[0]) * WALL_WIDTH, len(level) * WALL_HEIGHT)  # создаем камеру
     enemy = Enemy(200, 200, 50, 50, 'red', [(300, 300), (900, 900)], (all_sprites, enemies))
 
-    """NETWORK"""
-    n = Network()
-    """DANGER!"""
-
     light = load_image('circle.png')
-    light = pygame.transform.scale(light, (100, 100))
+    light = pygame.transform.scale(light, (400, 400))
 
-    # lamps_coord = []
-    # for i in range(10):
-    #     lamps_coord.append((50 * i, 100))
+    lamps_coord = [(500, 500), (2000, 1000)]  # сделлать загрузку из map
 
     for i in range(len(level)):
         for j in range(len(level[0])):
@@ -176,6 +183,10 @@ def main():
         ADD_BULLETS.clear()
         """DANGER!"""
 
+        if start_time is None and player2_pos[0] >= 0 and player2_pos[1] >= 0:
+            start_time = dt.datetime.now()
+            pygame.time.set_timer(ROUND_END, ROUND_DURATION_MIN * 60 * 1000, True)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -189,7 +200,6 @@ def main():
             if event.type == ROUND_END:
                 game_over = True
             if game_over and event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                # start_menu()
                 return 0
         if not game_over:
             # updates
@@ -212,16 +222,30 @@ def main():
             screen_filter.fill((255, 255, 255))
             # pygame.draw.circle(screen_filter, ('black'), camera.apply(player).center, 300)
             for b in bullets_group:
-                # pygame.draw.circle(screen_filter, 'black', camera.apply(b).center, 20)
-                screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(b).center)))
+                pygame.draw.circle(screen_filter, 'black', camera.apply(b).center, 12)
+                # screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(b).center)))
+            """Попытка сделать четверть окружности для поля зрения игрока"""
             # screen_filter.blit(light, list(map(lambda x: x - 3 * 50, pygame.mouse.get_pos())))
             # screen_filter.blit(light, list(map(lambda x: x - light.get_width() // 2, camera.apply(player).center)))
-            pygame.draw.circle(screen_filter, 'black', camera.apply(player).center, 200)
+            # player_view = pygame.Surface((200, 200))
+            # player_view.fill('white')
+            # pygame.draw.circle(player_view, 'black', (0, 0), 200, 0, False, False, False, True)
+            # player_view, rec = rot_center(player_view, player.angle, 0, 0)
+            # screen_filter.blit(player_view, (100, 100))
+            '''провал'''
+
+            pygame.draw.circle(screen_filter, 'black', camera.apply(player).center, 100)
+
+            # lamps
+            for lmp_crd in lamps_coord:
+                pygame.draw.circle(screen_filter, pygame.color.Color(0, 0, 0),
+                                   camera.rect_apply(pygame.Rect(*lmp_crd, 1, 1)).center, 200, 0)
+
             screen.blit(screen_filter, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
 
             for wl in entities:
                 screen.blit(wl.image, camera.apply(wl))
-            pygame.draw.rect(screen, 'yellow', camera.apply(player), 1)
+            # pygame.draw.rect(screen, 'yellow', camera.apply(player), 1)
 
             show_player_hp(screen, player)
             show_round_time(screen, start_time)
@@ -241,6 +265,86 @@ def main():
         clock.tick(FPS)
 
 
+def menu():
+    global client_ip
+    pygame.init()
+
+    pygame.display.set_caption('menu')
+    screen = pygame.display.set_mode(WINDOW_SIZE)
+
+    manager = pygame_gui.UIManager(WINDOW_SIZE)
+
+    switch = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect(WINDOW_WIDTH // 2 - 200, 650, 400, 50),
+        text='Start Game',
+        manager=manager,
+    )
+    level = 'easy map.txt'
+    diff = pygame_gui.elements.ui_drop_down_menu.UIDropDownMenu(
+        options_list=['Easy', 'Hard'],
+        starting_option='Easy',
+        relative_rect=pygame.Rect(WINDOW_WIDTH // 2 - 200, 250, 400, 50),
+        manager=manager
+    )
+    entry = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect(WINDOW_WIDTH // 2 - 200, 500, 400, 100),
+                                                manager=manager)
+    entry.set_text('localhost')
+
+    fnt = pygame.font.Font(None, 50)
+    g_m = fnt.render('Game Menu', True, (255, 255, 255))
+    mp = fnt.render('Map:', True, (255, 255, 255))
+    ip = fnt.render('IP:', True, (255, 255, 255))
+    wrong_ip = fnt.render('Wrong IP', True, (255, 0, 0))
+
+    wrong_ip_flag = False
+
+    clock_1 = pygame.time.Clock()
+    run = True
+    while run:
+        time_delta = clock_1.tick(60) / 1000.0
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                confirmation_dialog = pygame_gui.windows.UIConfirmationDialog(
+                    rect=pygame.Rect(WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT // 2 - 100, 300, 200),
+                    manager=manager,
+                    window_title='aaaa',
+                    action_long_desc='A u sure?',
+                    action_short_name='OK',
+                    blocking=True
+                )
+            if event.type == pygame.USEREVENT:
+                if event.user_type == pygame_gui.UI_CONFIRMATION_DIALOG_CONFIRMED:
+                    run = False
+
+                if event.user_type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
+                    if event.text == 'Easy':
+                        level = 'easy map.txt'
+                    elif event.text == 'Hard':
+                        level = 'normal map.txt'
+
+                if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                    if event.ui_element == switch:
+                        client_ip = entry.text
+                        wrong_ip_flag = False
+                        try:
+                            main(level)
+                        except ConnectionError:
+                            wrong_ip_flag = True
+            manager.process_events(event)
+        manager.update(time_delta)
+
+        screen.fill('black')
+        manager.draw_ui(screen)
+
+        screen.blit(g_m, (WINDOW_WIDTH // 2 - g_m.get_width() // 2, 10))
+        screen.blit(mp, (300, 250))
+        screen.blit(ip, (300, 500))
+        if wrong_ip_flag:
+            screen.blit(wrong_ip, (900, 500))
+
+        pygame.display.update()
+
+
 if __name__ == '__main__':
     # start_screen()
 
@@ -252,4 +356,4 @@ if __name__ == '__main__':
 
     # ----not danger----
 
-    main()
+    menu()

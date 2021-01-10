@@ -31,6 +31,8 @@ class Online:
 
         self.score = [0, 0]  # для 0 и 1 игрока соответсвенно
 
+        self.level = None
+
 
 online = Online()
 current_player = 0
@@ -41,6 +43,12 @@ def threaded_client(conn, player):
     global current_player
 
     conn.send(str.encode(str(player)))
+
+    if player == 0:
+        online.level = conn.recv(4096).decode()
+    elif player == 1:
+        conn.send(str.encode(str(online.level)))
+
     reply = ""
     while True:
         try:
@@ -75,6 +83,7 @@ def threaded_client(conn, player):
     print('Lost Connection')
     conn.close()
     current_player -= 1
+    online.level = None
 
 
 while True:

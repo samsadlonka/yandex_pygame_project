@@ -1,14 +1,14 @@
 import socket
 import pickle
 
-from const import CLIENT_IP
+from const import client_ip
 from webContainer import WebContainer
 
 
 class Network:
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.host = CLIENT_IP
+        self.host = client_ip
         self.port = 5555
         self.addr = (self.host, self.port)
         self.p = self.connect()
@@ -18,7 +18,7 @@ class Network:
 
     def connect(self):
         self.client.connect(self.addr)
-        return self.client.recv(4096).decode()
+        return int(self.client.recv(4096).decode())
 
     def send(self, player_pos, player_angle, bullets, k_death):
         try:
@@ -28,3 +28,9 @@ class Network:
             return data.player_pos, data.player_angle, data.bullets, data.score
         except socket.error as e:
             print(e)
+
+    def set_level(self, level):
+        self.client.send(str.encode(str(level), encoding='utf-8'))
+
+    def get_level(self):
+        return self.client.recv(4096).decode()
