@@ -142,9 +142,9 @@ def close_game():
     player2_group = pygame.sprite.Group()
 
 
-def main(level_map):
+def main(level_map, ip):
     """NETWORK"""
-    n = Network()
+    n = Network(ip)
 
     p = n.getP()
     if p == 0:
@@ -296,7 +296,6 @@ def main(level_map):
 
 
 def menu():
-    global client_ip
     pygame.init()
 
     pygame.display.set_caption('menu')
@@ -356,9 +355,9 @@ def menu():
                         client_ip = entry.text
                         wrong_ip_flag = False
                         try:
-                            main(level)
+                            main(level, client_ip)
                             close_game()
-                        except ConnectionError:
+                        except ConnectionError as e:
                             wrong_ip_flag = True
             manager.process_events(event)
         manager.update(time_delta)

@@ -1,12 +1,11 @@
 import socket
 import pickle
 
-from const import client_ip
 from webContainer import WebContainer
 
 
 class Network:
-    def __init__(self):
+    def __init__(self, client_ip):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.host = client_ip
         self.port = 5555

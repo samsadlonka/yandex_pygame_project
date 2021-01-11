@@ -17,8 +17,7 @@ ADD_BULLETS = []
 BACKGROUND_COLOR = '#002137'
 
 # NET
-SERVER_IP = 'localhost'
-client_ip = 'localhost'
+SERVER_IP = '192.168.12.112'
 
 # Map
 WALLS_IDs = [1730, 1837, 1729, 2165, 2486, 2485, 2057, 1736, 1844, 2492]
