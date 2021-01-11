@@ -169,7 +169,7 @@ def main(level_map, ip):
     light = load_image('circle.png')
     light = pygame.transform.scale(light, (400, 400))
 
-    lamps_coord = [(500, 500), (2000, 1000)]  # сделлать загрузку из map
+    lamps_coord = []  # сделлать загрузку из map
 
     for i in range(level.height):
         for j in range(level.width):
@@ -180,6 +180,8 @@ def main(level_map, ip):
             if get_tile_id(level, (j, i, 0)) in SPAWN_IDs:
                 spawn_points.append((j * WALL_WIDTH, i * WALL_HEIGHT))
                 sp_p = SpawnPoint(image, *spawn_points[-1], (all_sprites,))
+            if get_tile_id(level, (j, i, 0)) in LAMPS_IDs:
+                lamps_coord.append((j * WALL_WIDTH, i * WALL_HEIGHT))
 
     player.rect.topleft = random.choice(spawn_points)
     player.is_alive = False
@@ -207,7 +209,8 @@ def main(level_map, ip):
             start_time = dt.datetime.now()
             pygame.time.set_timer(ROUND_END, ROUND_DURATION_MIN * 60 * 1000, True)
             flag_player2_dead = False
-            enemy = Enemy(200, 200, 50, 50, 'red', [(300, 300), (900, 900)], (all_sprites, enemies))
+            enemy_way = find_enemy_way(level_map[:-3] + 'txt')
+            enemy = Enemy(*enemy_way[0], 50, 50, 'red', enemy_way, (all_sprites, enemies))
         elif not flag_player2_dead and start_time and player2_pos[0] < 0 and player2_pos[1] < 0:
             game_over = True
             flag_show_player_disconnect = True

@@ -3,7 +3,7 @@
  <tileset firstgid="1" source="tiles.tsx"/>
  <layer id="1" name="Слой тайлов 1" width="97" height="36">
   <data encoding="base64" compression="zlib">
-   eJzt2jESgjAQheFUKp0X0YpTeB+PppUNVhxLKGwiOLJrdjfwF6+wyGySLxlCpNul9DRK59Q2cvohp31KZ6Noaln20zKt8dgwwCBipgwuRwy8Db5F+1zUzOOtSekeNM3BzkC7Fte6lsdx5esNA3sDaVsM6jPw7GvkYOCfrRhIz2T9guejxbi2eFfRBh9XTfsAA30tDGIYeIxzqYGkDgYYYKA3WHLmuyrupjCY718t7021GuR3ePlvDMob/NK/tRtY1MHAvw4G/nUsz0X/CAafBuwDDDDAAIN4c4OB/9yUajN1Lnn/j1biXCTp79w7veb7MOs1LYnHPpDWwwADDDDAoKyB9ffM0nqSduN8WvVPmseQF+fzlmw=
+   eJztmrEWgjAMRTOpfIxO7P6Si5+mkwtMfJYwuFQ40IS+puUNb+Acc5LX22AodCeRHqQuU6xnDaOuZ5EbSJZcyDqRasHeyIAMcush2xjM/Y4M0im2D6z/i5Z1fDUib6dqLjgG1r1Y616efIX7jQzwDLSxZFAeg5S13iP615tqYVCyjsJAO5MNgP6K8XXEs4rWua+S+oAM7LnIwAcDhM/wrCWWgcYjGax7JAMyWKsvZuZ7Gs6myGC5vlKem0plEJ7hhddkkJ7BlvpqZ4DIQwb585BB/jzIuWgPkcE/A/YBGZABGZCBv7WplcEe74o9rOeSjy155uaS33u0FHORxuPSM73l+zD0ntYox71Im48MymAQ3ivIAM8gVwwZ5I+xMkB/z6zNp4mb1hNVn1afUV+BPpc4
   </data>
  </layer>
 </map>

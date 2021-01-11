@@ -56,6 +56,17 @@ def get_tile_id(level, position):
     return level.tiledgidmap[level.get_tile_gid(*position)]
 
 
+def find_enemy_way(file):
+    data = list(map(str.rstrip, open('levels/' + file, 'rt')))
+    enemy_way = []
+    for i in range(len(data)):
+        for j in range(len(data[0])):
+            if data[i][j].isdigit():
+                enemy_way.append(((j * WALL_WIDTH, i * WALL_HEIGHT), data[i][j]))
+    enemy_way.sort(key=lambda x: int(x[1]))
+    return list(map(lambda x: x[0], enemy_way))
+
+
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     # если файл не существует, то выходим
