@@ -40,7 +40,7 @@ class Enemy(pygame.sprite.Sprite):
             self.current_way += 1
             self.current_way %= len(self.way)
 
-        # self.shoot(player, bullets_group, all_sprites)  # fixit!!!!!!!!!
+        self.shoot(player, bullets_group, all_sprites)  # fixit!!!!!!!!!
 
         if not self.shoot_flag:
             if self.clock.get_time() - self.last_shoot_time >= self.shoot_delay:
@@ -48,7 +48,8 @@ class Enemy(pygame.sprite.Sprite):
 
         self.bullets_collide(bullets_group)
         if self.health <= 0:
-            self.kill()
+            self.health = 50
+            self.current_way = 0
 
     def start_move_to_point(self, coord):
         self.end_x = coord[0]
