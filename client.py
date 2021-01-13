@@ -220,6 +220,8 @@ def main(level_map, ip):
                 running = False
             if event.type == CAN_SHOOT_EVENT:
                 player.can_shoot_flag = True
+            if event.type == ENEMY_SHOOT_EVENT:
+                enemy.shoot_flag = True
             if event.type == MYEVENTTYPE and player.move_sound == 1:
                 pygame.mixer.find_channel(True).play(load_sound('move_sound.wav'))
             if not player.is_alive and event.type == pygame.KEYDOWN and \

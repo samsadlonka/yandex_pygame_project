@@ -11,6 +11,9 @@ class Enemy(pygame.sprite.Sprite):
         self.image.fill(color)
 
         self.mask = pygame.mask.from_surface(self.image)
+        self.timer = 0
+
+        self.shoot_sound = load_sound('pew.wav')
 
         self.x = x
         self.y = y
@@ -40,11 +43,11 @@ class Enemy(pygame.sprite.Sprite):
             self.current_way += 1
             self.current_way %= len(self.way)
 
-        self.shoot(player, bullets_group, all_sprites)  # fixit!!!!!!!!!
+        if not self.shoot_flag and self.timer == 0 :
+            pygame.time.set_timer(ENEMY_SHOOT_EVENT, self.shoot_delay, True)
+            self.timer = 1
 
-        if not self.shoot_flag:
-            if self.clock.get_time() - self.last_shoot_time >= self.shoot_delay:
-                self.shoot_flag = True
+        self.shoot(player, bullets_group, all_sprites)
 
         self.bullets_collide(bullets_group)
         if self.health <= 0:
@@ -87,14 +90,15 @@ class Enemy(pygame.sprite.Sprite):
 
     def shoot(self, player, bullets_group, all_sprites):
         if math.dist(self.rect.center, player.rect.center) <= self.view_radius and self.shoot_flag:
+            self.timer = 0
             self.shoot_flag = False
-            self.last_shoot_time = self.clock.get_time()
-            print(self.last_shoot_time)
             cos, sin = calculate_direction(*self.rect.center, *player.rect.center)
             shoot_x, shoot_y = 100 * cos, 100 * sin
-            bullet = Bullet((shoot_x, shoot_y),
-                            (player.rect.x + randrange(-50, 51), player.rect.y + randrange(-50, 51)),
+            real_pos = (player.rect.x + randrange(-50, 51), player.rect.y + randrange(-50, 51))
+            bullet = Bullet((player.rect.x + 200, player.rect.y + 200), real_pos,
                             (all_sprites, bullets_group))
+            ADD_BULLETS.append(((player.rect.x + 200, player.rect.y + 200), real_pos))
+            pygame.mixer.find_channel(True).play(self.shoot_sound)
 
     def bullets_collide(self, bullets_group):
         for bullet in bullets_group.sprites():
