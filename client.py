@@ -211,7 +211,7 @@ def main(level_map, ip):
             pygame.time.set_timer(ROUND_END, ROUND_DURATION_MIN * 60 * 1000, True)
             flag_player2_dead = False
             enemy_way = find_enemy_way(level_map[:-3] + 'txt')
-            enemy = Enemy(*enemy_way[0], 50, 50, 'red', enemy_way, (all_sprites, enemies))
+            # enemy = Enemy(*enemy_way[0], 50, 50, 'red', enemy_way, (all_sprites, enemies))
         elif not flag_player2_dead and start_time and player2_pos[0] < 0 and player2_pos[1] < 0:
             game_over = True
             flag_show_player_disconnect = True

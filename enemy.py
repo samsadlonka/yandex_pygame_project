@@ -41,7 +41,9 @@ class Enemy(pygame.sprite.Sprite):
         else:
             self.start_move_to_point(self.way[self.current_way])
             self.current_way += 1
-            self.current_way %= len(self.way)
+            if self.current_way == len(self.way):
+                self.way.reverse()
+                self.current_way = 1
 
         if not self.shoot_flag and self.timer == 0 :
             pygame.time.set_timer(ENEMY_SHOOT_EVENT, self.shoot_delay, True)
@@ -77,6 +79,12 @@ class Enemy(pygame.sprite.Sprite):
 
         self.check_moving()
 
+    def move_line(self):
+        self.x += self.direction[0] * self.vx
+        self.y -= self.direction[1] * self.vy
+
+        self.check_moving()
+
     def check_moving(self):
         if abs(self.x + self.width // 2 - self.end_x) < self.vx:
             self.x = self.end_x - self.width // 2
@@ -95,9 +103,9 @@ class Enemy(pygame.sprite.Sprite):
             cos, sin = calculate_direction(*self.rect.center, *player.rect.center)
             shoot_x, shoot_y = 100 * cos, 100 * sin
             real_pos = (player.rect.x + randrange(-50, 51), player.rect.y + randrange(-50, 51))
-            bullet = Bullet((player.rect.x + 200, player.rect.y + 200), real_pos,
+            bullet = Bullet((self.rect.x + shoot_x, self.rect.y + shoot_y), real_pos,
                             (all_sprites, bullets_group))
-            ADD_BULLETS.append(((player.rect.x + 200, player.rect.y + 200), real_pos))
+            ADD_BULLETS.append(((self.rect.x + shoot_x, self.rect.y + shoot_y), real_pos))
             pygame.mixer.find_channel(True).play(self.shoot_sound)
 
     def bullets_collide(self, bullets_group):
