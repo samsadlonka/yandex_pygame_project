@@ -1,5 +1,6 @@
 import pygame
 import pygame_gui
+import pyganim
 
 WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT = 1280, 720
 FPS = 60
@@ -27,3 +28,5 @@ SPAWN_IDs = [112]
 LAMPS_IDs = [1599]
 
 MOVE_SOUND = 0
+
+anim_images = pyganim.getImagesFromSpriteSheet('data/anim.jpeg', rows=1, cols=6, rects=[])

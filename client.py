@@ -165,6 +165,7 @@ def main(level_map, ip):
     player = Player(100, 100, (all_sprites,))  # создаем игрока
     player2 = Player2((all_sprites, player2_group))
     camera = Camera(camera_configure, level.width * WALL_WIDTH, level.height * WALL_HEIGHT)  # создаем камеру
+    enemy = None
 
     light = load_image('circle.png')
     light = pygame.transform.scale(light, (400, 400))
@@ -220,7 +221,7 @@ def main(level_map, ip):
                 running = False
             if event.type == CAN_SHOOT_EVENT:
                 player.can_shoot_flag = True
-            if event.type == ENEMY_SHOOT_EVENT:
+            if enemy and event.type == ENEMY_SHOOT_EVENT:
                 enemy.shoot_flag = True
             if event.type == MYEVENTTYPE and player.move_sound == 1:
                 pygame.mixer.find_channel(True).play(load_sound('move_sound.wav'))
@@ -329,6 +330,11 @@ def menu():
     ip = fnt.render('IP:', True, (255, 255, 255))
     wrong_ip = fnt.render('Wrong IP', True, (255, 0, 0))
 
+    anim_im = anim_images[:]
+    frames = list(zip(anim_images, [200, 200, 200, 200, 200, 200]))
+    animObj = pyganim.PygAnimation(frames)
+    animObj.play()
+
     wrong_ip_flag = False
 
     clock_1 = pygame.time.Clock()
@@ -373,6 +379,7 @@ def menu():
         screen.blit(g_m, (WINDOW_WIDTH // 2 - g_m.get_width() // 2, 10))
         screen.blit(mp, (300, 250))
         screen.blit(ip, (300, 500))
+        animObj.blit(screen, (100, 100))
         if wrong_ip_flag:
             screen.blit(wrong_ip, (900, 500))
 

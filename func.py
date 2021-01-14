@@ -3,7 +3,6 @@ import os
 import sys
 import pytmx
 
-
 from const import *
 
 
@@ -81,3 +80,8 @@ def load_image(name, colorkey=None):
         image.set_colorkey(colorkey)
 
     return image
+
+
+def set_alpha(image):
+    colorkey = image.get_at((0, 0))
+    image.set_colorkey(colorkey)
